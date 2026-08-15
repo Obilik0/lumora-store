@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { TechScience } from './components/TechScience';
@@ -237,6 +238,9 @@ export function App() {
         companyName="ABPM COMMERCE LTD"
         supportEmail="support@lumora.com"
       />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
 
     </div>
   );
