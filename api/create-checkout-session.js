@@ -97,20 +97,20 @@ export default async function handler(req, res) {
       },
     });
 
-    // Save initial unpaid order record in Supabase
+    // Save initial pending order record in existing public.orders table
     try {
-      await supabase.from('stripe_orders').insert({
+      await supabase.from('orders').insert({
         order_number: orderNumber,
-        stripe_session_id: session.id,
+        customer_name: 'LUMORA Checkout Customer',
+        customer_email: 'pending_checkout@lumora.com',
+        shipping_address: 'US Express Delivery',
         items: [{ title: 'LUMORA Red Light Therapy LED Mask', quantity, price: 129.99 }],
         total_amount: (fixedUnitAmount * quantity) / 100,
-        currency: 'usd',
-        payment_status: 'unpaid',
         status: 'pending',
         created_at: new Date().toISOString(),
       });
     } catch (dbErr) {
-      console.error('Supabase initial order insert warning:', dbErr);
+      console.error('Supabase initial orders table insert warning:', dbErr);
     }
 
     return res.status(200).json({

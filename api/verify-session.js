@@ -45,20 +45,19 @@ export default async function handler(req, res) {
       shippingAddress = `${a.line1 || ''}, ${a.city || ''}, ${a.state || ''} ${a.postal_code || ''}, ${a.country || ''}`;
     }
 
-    // Confirm order status in Supabase database
+    // Confirm order status in public.orders table
     if (isPaid) {
       try {
         await supabase
-          .from('stripe_orders')
+          .from('orders')
           .update({
-            payment_status: 'paid',
-            status: 'confirmed',
-            stripe_payment_intent_id: typeof session.payment_intent === 'object' ? session.payment_intent.id : session.payment_intent,
             customer_name: customerName,
             customer_email: customerEmail,
             shipping_address: shippingAddress,
+            status: 'confirmed',
+            total_amount: amountTotal,
           })
-          .eq('stripe_session_id', session_id);
+          .eq('order_number', orderNumber);
       } catch (dbErr) {
         console.error('Database update error on verify:', dbErr);
       }

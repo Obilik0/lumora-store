@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     const signature = req.headers['stripe-signature'];
 
     if (webhookSecret && signature) {
-      // Secure Signature Verification using STRIPE_WEBHOOK_SECRET
+      // Authoritative Webhook Signature Verification using STRIPE_WEBHOOK_SECRET
       event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } else {
       // Fallback for direct local/sandbox payload
@@ -50,84 +50,64 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Signature Verification Error: ${err.message}`);
   }
 
-  console.log(`[Stripe Webhook Verified] Event: ${event.type} | ID: ${event.id}`);
+  console.log(`[Stripe Webhook Event Verified] Type: ${event.type} | ID: ${event.id}`);
 
   try {
     switch (event.type) {
-      // Event 1: checkout.session.completed
+      // Event 1: checkout.session.completed (Authoritative Source for Paid Orders)
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const sessionId = session.id;
-        const paymentIntentId = session.payment_intent;
         const customerName = session.customer_details?.name || session.shipping_details?.name || 'LUMORA Customer';
         const customerEmail = session.customer_details?.email || session.customer_email || 'support@lumora.com';
         const amountTotal = (session.amount_total || 12999) / 100;
-        const orderNumber = session.client_reference_id || 'LUMORA-' + Math.floor(100000 + Math.random() * 900000);
+        const orderNumber = session.client_reference_id || session.metadata?.order_number || ('LUMORA-' + Math.floor(100000 + Math.random() * 900000));
+        const quantity = Number(session.metadata?.quantity) || 1;
         
-        let shippingAddress = 'US Express Delivery';
+        let shippingAddress = 'US Express Shipping';
         if (session.shipping_details?.address) {
           const addr = session.shipping_details.address;
           shippingAddress = `${addr.line1 || ''} ${addr.line2 || ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.postal_code || ''}, ${addr.country || 'US'}`.trim();
         }
 
-        // Idempotency Check: Prevent duplicate webhook processing
+        const nowIso = new Date().toISOString();
+
+        // Idempotency & Duplicate Webhook Protection on single public.orders table
         const { data: existingOrders } = await supabase
-          .from('stripe_orders')
-          .select('payment_status')
-          .eq('stripe_session_id', sessionId);
+          .from('orders')
+          .select('id, status, order_number')
+          .eq('order_number', orderNumber);
 
         if (existingOrders && existingOrders.length > 0) {
-          if (existingOrders[0].payment_status === 'paid') {
-            console.log(`[Idempotency] Webhook session ${sessionId} already processed as paid.`);
+          if (existingOrders[0].status === 'confirmed' || existingOrders[0].status === 'paid') {
+            console.log(`[Idempotency] Order ${orderNumber} is already marked as confirmed in public.orders.`);
             return res.status(200).json({ received: true, note: 'already_processed' });
           }
 
-          // Update existing pending record
+          // Update existing pending order to confirmed
           await supabase
-            .from('stripe_orders')
+            .from('orders')
             .update({
-              payment_status: 'paid',
-              status: 'confirmed',
-              stripe_payment_intent_id: typeof paymentIntentId === 'object' ? paymentIntentId.id : String(paymentIntentId),
               customer_name: customerName,
               customer_email: customerEmail,
               shipping_address: shippingAddress,
+              status: 'confirmed',
+              total_amount: amountTotal,
             })
-            .eq('stripe_session_id', sessionId);
+            .eq('order_number', orderNumber);
         } else {
-          // Insert new record if initial checkout session insert was skipped
+          // Insert new confirmed order into single public.orders table
           await supabase
-            .from('stripe_orders')
+            .from('orders')
             .insert({
               order_number: orderNumber,
-              stripe_session_id: sessionId,
-              stripe_payment_intent_id: typeof paymentIntentId === 'object' ? paymentIntentId.id : String(paymentIntentId),
               customer_name: customerName,
               customer_email: customerEmail,
               shipping_address: shippingAddress,
-              items: [{ title: 'LUMORA Red Light Therapy LED Mask', quantity: 1, price: 129.99 }],
+              items: [{ title: 'LUMORA Red Light Therapy LED Mask', quantity, price: 129.99 }],
               total_amount: amountTotal,
-              currency: session.currency || 'usd',
-              payment_status: 'paid',
               status: 'confirmed',
-              created_at: new Date().toISOString(),
+              created_at: nowIso,
             });
-        }
-
-        // Sync with primary orders table
-        try {
-          await supabase.from('orders').insert({
-            order_number: orderNumber,
-            customer_name: customerName,
-            customer_email: customerEmail,
-            shipping_address: shippingAddress,
-            items: [{ title: 'LUMORA Red Light Therapy LED Mask', quantity: 1, price: 129.99 }],
-            total_amount: amountTotal,
-            status: 'confirmed',
-            created_at: new Date().toISOString(),
-          });
-        } catch (syncErr) {
-          console.error('Orders table sync warning:', syncErr);
         }
 
         break;
@@ -136,64 +116,34 @@ export default async function handler(req, res) {
       // Event 2: payment_intent.succeeded
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
-        const piId = paymentIntent.id;
-
-        await supabase
-          .from('stripe_orders')
-          .update({
-            payment_status: 'paid',
-            status: 'confirmed',
-          })
-          .eq('stripe_payment_intent_id', piId);
-
+        console.log(`[Stripe Webhook] Payment Intent Succeeded: ${paymentIntent.id}`);
         break;
       }
 
       // Event 3: payment_intent.payment_failed
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object;
-        const piId = paymentIntent.id;
-
-        await supabase
-          .from('stripe_orders')
-          .update({
-            payment_status: 'failed',
-            status: 'failed',
-          })
-          .eq('stripe_payment_intent_id', piId);
-
+        console.log(`[Stripe Webhook] Payment Intent Failed: ${paymentIntent.id}`);
         break;
       }
 
       // Event 4: checkout.session.expired
       case 'checkout.session.expired': {
         const session = event.data.object;
-        await supabase
-          .from('stripe_orders')
-          .update({
-            payment_status: 'expired',
-            status: 'canceled',
-          })
-          .eq('stripe_session_id', session.id);
-
+        const orderNumber = session.client_reference_id || session.metadata?.order_number;
+        if (orderNumber) {
+          await supabase
+            .from('orders')
+            .update({ status: 'canceled' })
+            .eq('order_number', orderNumber);
+        }
         break;
       }
 
       // Event 5: charge.refunded
       case 'charge.refunded': {
         const charge = event.data.object;
-        const piId = typeof charge.payment_intent === 'object' ? charge.payment_intent.id : charge.payment_intent;
-
-        if (piId) {
-          await supabase
-            .from('stripe_orders')
-            .update({
-              payment_status: 'refunded',
-              status: 'refunded',
-            })
-            .eq('stripe_payment_intent_id', String(piId));
-        }
-
+        console.log(`[Stripe Webhook] Charge Refunded: ${charge.id}`);
         break;
       }
 
