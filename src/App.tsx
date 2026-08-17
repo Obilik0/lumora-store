@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { TechScience } from './components/TechScience';
@@ -7,6 +6,7 @@ import { ProductSpecs } from './components/ProductSpecs';
 import { HowItWorks } from './components/HowItWorks';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { ReviewsSection } from './components/ReviewsSection';
+import { Certifications } from './components/Certifications';
 import { FAQSection } from './components/FAQSection';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -16,17 +16,21 @@ import { EmailNewsletter } from './components/EmailNewsletter';
 import { Footer } from './components/Footer';
 import { OrderSuccess } from './pages/OrderSuccess';
 import { OrderCancel } from './pages/OrderCancel';
+import { TrackOrder } from './pages/TrackOrder';
 import { Product, Review, FAQItem, BrandConfig, CartItem } from './lib/types';
 
 export function App() {
   const pathname = window.location.pathname;
 
-  // Handle Stripe Redirect Pages
+  // Handle Dedicated Pages
   if (pathname.startsWith('/order-success')) {
     return <OrderSuccess />;
   }
   if (pathname.startsWith('/order-cancel')) {
     return <OrderCancel />;
+  }
+  if (pathname.startsWith('/track-order')) {
+    return <TrackOrder />;
   }
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -161,7 +165,6 @@ export function App() {
       <Header
         cartCount={totalCartCount}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenDashboard={() => setIsDashboardOpen(true)}
         brandName={brandName}
         logoUrl={configMap['LOGO'] || '/images/lumora-logo.png'}
       />
@@ -189,6 +192,9 @@ export function App() {
 
         {/* Customer Reviews Section */}
         <ReviewsSection reviews={reviews} onAddReview={handleAddReview} />
+
+        {/* Dedicated Quality & Certifications Section */}
+        <Certifications />
 
         {/* FAQ Section */}
         <FAQSection faqs={faqs} />
@@ -221,7 +227,7 @@ export function App() {
         onOrderComplete={() => setCart([])}
       />
 
-      {/* Brief Page 23 Launch Config Dashboard */}
+      {/* Launch Config Dashboard */}
       <LaunchDashboard
         isOpen={isDashboardOpen}
         onClose={() => setIsDashboardOpen(false)}
@@ -238,9 +244,6 @@ export function App() {
         companyName="ABPM COMMERCE LTD"
         supportEmail="support@lumora.com"
       />
-
-      {/* Vercel Web Analytics */}
-      <Analytics />
 
     </div>
   );

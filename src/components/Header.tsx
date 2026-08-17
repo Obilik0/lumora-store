@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Sparkles, Menu, X, Settings, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Sparkles, Menu, X, ChevronRight, Package, Award } from 'lucide-react';
 
 interface HeaderProps {
   cartCount: number;
   onOpenCart: () => void;
-  onOpenDashboard: () => void;
   brandName: string;
   logoUrl?: string;
 }
@@ -12,7 +11,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   cartCount,
   onOpenCart,
-  onOpenDashboard,
   brandName = 'LUMORA',
   logoUrl = '/images/lumora-logo.png',
 }) => {
@@ -91,25 +89,28 @@ export const Header: React.FC<HeaderProps> = ({
             Reviews
           </button>
           <button
+            onClick={() => scrollToSection('certifications')}
+            className="hover:text-red-400 transition-colors cursor-pointer"
+          >
+            Certifications
+          </button>
+          <button
             onClick={() => scrollToSection('faq')}
             className="hover:text-red-400 transition-colors cursor-pointer"
           >
             FAQ
           </button>
+          <a
+            href="/track-order"
+            className="text-amber-400 hover:text-amber-300 transition-colors font-bold flex items-center gap-1"
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Track Order</span>
+          </a>
         </nav>
 
         {/* Action Controls */}
         <div className="flex items-center gap-3">
-          {/* Admin / Config Launch Dashboard Toggle */}
-          <button
-            onClick={onOpenDashboard}
-            title="Launch Config Dashboard (Placeholders)"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-mono text-zinc-400 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 rounded-full transition-all hover:text-amber-400"
-          >
-            <Settings className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">CONFIG</span>
-          </button>
-
           {/* Cart Trigger */}
           <button
             onClick={onOpenCart}
@@ -174,11 +175,24 @@ export const Header: React.FC<HeaderProps> = ({
               Verified Reviews
             </button>
             <button
+              onClick={() => scrollToSection('certifications')}
+              className="text-left py-2 border-b border-zinc-800 text-zinc-300 hover:text-red-400"
+            >
+              Quality & Certifications
+            </button>
+            <button
               onClick={() => scrollToSection('faq')}
               className="text-left py-2 border-b border-zinc-800 text-zinc-300 hover:text-red-400"
             >
               Frequently Asked Questions
             </button>
+            <a
+              href="/track-order"
+              className="text-left py-2 border-b border-zinc-800 text-amber-400 font-bold hover:text-amber-300 flex items-center gap-2"
+            >
+              <Package className="w-4 h-4" />
+              <span>Track Your Order</span>
+            </a>
           </div>
 
           <button

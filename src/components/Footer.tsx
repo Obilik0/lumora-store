@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Truck, RefreshCw, Lock } from 'lucide-react';
+import { Shield, Truck, RefreshCw, Lock, Package } from 'lucide-react';
 import { PolicyType } from './LegalModal';
 
 interface FooterProps {
@@ -9,7 +9,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ brandName = 'LUMORA', onOpenPolicy }) => {
   return (
-    <footer className="bg-[#030305] text-zinc-400 text-xs border-t border-zinc-900 pt-16 pb-12">
+    <footer className="bg-[#030305] text-zinc-400 text-xs border-t border-zinc-900 pt-16 pb-12 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         
         {/* Trust Badges */}
@@ -58,12 +58,19 @@ export const Footer: React.FC<FooterProps> = ({ brandName = 'LUMORA', onOpenPoli
               <li><a href="#specs" className="hover:text-white">SKB-2318Pro Specs</a></li>
               <li><a href="#how-it-works" className="hover:text-white">Usage Instructions</a></li>
               <li><a href="#reviews" className="hover:text-white">Verified Reviews</a></li>
+              <li><a href="#certifications" className="hover:text-white">Quality & Certifications</a></li>
             </ul>
           </div>
 
           <div className="space-y-2">
-            <div className="font-bold text-white uppercase text-[11px] text-amber-400">Support & Legal</div>
+            <div className="font-bold text-white uppercase text-[11px] text-amber-400">Order & Legal</div>
             <ul className="space-y-1.5 text-zinc-400">
+              <li>
+                <a href="/track-order" className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1">
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Track Your Order</span>
+                </a>
+              </li>
               <li><button onClick={() => onOpenPolicy('shipping')} className="hover:text-white text-left">Shipping Policy (2-4 Days)</button></li>
               <li><button onClick={() => onOpenPolicy('returns')} className="hover:text-white text-left">30-Day Return Policy</button></li>
               <li><button onClick={() => onOpenPolicy('warranty')} className="hover:text-white text-left">1-Year Warranty Details</button></li>
