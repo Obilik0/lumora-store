@@ -16,8 +16,23 @@ export const OrderSuccess: React.FC = () => {
           setOrderDetails(data);
           setLoading(false);
 
-          // Clear local cart ONLY AFTER payment is verified as paid directly by Stripe
+          // Track a Purchase ONLY after Stripe confirms the payment is actually paid.
+          // Use the real verified Stripe amount/currency instead of a hardcoded 0.00 value.
           if (data && data.paid) {
+            const purchaseValue = Number(data.amountTotal);
+            const purchaseCurrency = String(data.currency || 'usd').toUpperCase();
+
+            if (
+              purchaseValue > 0 &&
+              typeof window !== 'undefined' &&
+              typeof (window as any).fbq === 'function'
+            ) {
+              (window as any).fbq('track', 'Purchase', {
+                value: purchaseValue,
+                currency: purchaseCurrency,
+              });
+            }
+
             try {
               localStorage.removeItem('lumora_cart');
             } catch (err) {
